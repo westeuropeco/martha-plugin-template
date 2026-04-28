@@ -1,0 +1,11 @@
+services:
+  __PLUGIN_SLUG__-api:
+    build: .
+    ports:
+      # Host port is your plugin's slot. Pick a free port — sku=8090, scoring=8091,
+      # signatures=8092 are taken in the Carlos-managed plugin set. 8099 is the
+      # default placeholder for new plugins; change it if you need to run more
+      # than one new plugin alongside.
+      - "8099:8000"
+    environment:
+      LOG_LEVEL: INFO

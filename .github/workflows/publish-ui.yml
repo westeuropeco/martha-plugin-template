@@ -1,0 +1,61 @@
+name: Publish @westeuropeco/__PLUGIN_SLUG__-ui
+
+# Publishes the plugin UI package to GitHub Packages npm registry. The
+# Martha host (`westeuropeco/martha`'s `martha-admin-svelte`) consumes
+# it as a registry semver dep:
+#   "@westeuropeco/__PLUGIN_SLUG__-ui": "^0.0.1"
+#
+# Trigger by pushing a tag matching `__PLUGIN_SLUG__-ui-v*`, e.g.
+# `git tag __PLUGIN_SLUG__-ui-v0.0.2 && git push origin __PLUGIN_SLUG__-ui-v0.0.2`.
+# The job verifies the tag's version matches `ui/package.json` so we
+# don't accidentally publish stale versions.
+
+on:
+  push:
+    tags:
+      - "__PLUGIN_SLUG__-ui-v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to publish (must match ui/package.json)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          registry-url: "https://npm.pkg.github.com"
+          scope: "@westeuropeco"
+
+      - name: Verify version match
+        working-directory: ui
+        run: |
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          if [ "${{ github.event_name }}" = "push" ]; then
+            TAG_VERSION="${GITHUB_REF#refs/tags/__PLUGIN_SLUG__-ui-v}"
+          else
+            TAG_VERSION="${{ inputs.version }}"
+          fi
+          if [ "$PKG_VERSION" != "$TAG_VERSION" ]; then
+            echo "::error::ui/package.json version ($PKG_VERSION) does not match trigger version ($TAG_VERSION)"
+            exit 1
+          fi
+          echo "Publishing @westeuropeco/__PLUGIN_SLUG__-ui@$PKG_VERSION"
+
+      - name: Publish
+        working-directory: ui
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
