@@ -56,6 +56,12 @@ jobs:
 
       - name: Publish
         working-directory: ui
+        # ui/.npmrc references ${GITHUB_TOKEN} (the local-dev variable
+        # plugin authors export from `gh auth token`). The local file
+        # overrides setup-node's user-level .npmrc during publish, so
+        # both env vars need values: NODE_AUTH_TOKEN for the temp
+        # .npmrc, GITHUB_TOKEN for the committed one.
         run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
