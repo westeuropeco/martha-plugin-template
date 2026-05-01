@@ -54,6 +54,33 @@ jobs:
           fi
           echo "Publishing @westeuropeco/__PLUGIN_SLUG__-ui@$PKG_VERSION"
 
+      - name: Install dev deps
+        working-directory: ui
+        # Only the wuchale dev deps are exercised by the i18n drift check;
+        # the source-shipped plugin doesn't need its production deps in a
+        # publish job. But `npm install <pkg>` still resolves existing
+        # entries in package.json — including @westeuropeco/admin-chrome
+        # and @westeuropeco/martha-sdk from the westeuropeco/martha repo.
+        # `secrets.GITHUB_TOKEN` lacks read:packages on those, so a PAT
+        # with org-wide read:packages is required. Set GHCR_PAT in this
+        # repo's secrets (gh secret set GHCR_PAT --repo <org>/<repo>).
+        run: npm install --no-save --no-audit --no-fund wuchale @wuchale/svelte
+        env:
+          GITHUB_TOKEN: ${{ secrets.GHCR_PAT }}
+
+      - name: i18n drift check
+        working-directory: ui
+        # Re-run wuchale extract; if anything would change, fail. Plugin
+        # authors commit their .po files alongside source edits — drift
+        # here means a string change shipped without translator review.
+        run: |
+          npm run i18n:extract
+          if ! git diff --quiet src/locales; then
+            echo "::error::src/locales/*.po out of sync — run 'npm run i18n:extract' and commit"
+            git --no-pager diff src/locales | head -80
+            exit 1
+          fi
+
       - name: Publish
         working-directory: ui
         # ui/.npmrc references ${GITHUB_TOKEN} (the local-dev variable

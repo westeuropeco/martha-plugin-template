@@ -14,6 +14,7 @@
  *   - `":id"` is a single-segment param, surfaced as `params.id`
  *   - `"items/:id/edit"` mixes literals and params
  */
+import "./locales/loader.svelte.js";
 import { defineRoutes } from "@westeuropeco/martha-sdk/client";
 import Home from "./pages/Home.svelte";
 import Detail from "./pages/Detail.svelte";
